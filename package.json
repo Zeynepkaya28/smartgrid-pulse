@@ -13,7 +13,11 @@
     "build": "pnpm -r --if-present run build",
     "test": "pnpm -r --if-present run test",
     "supabase": "supabase",
-    "db:types": "supabase gen types typescript --local --schema public > apps/dashboard/types/database.ts"
+    "db:types": "supabase gen types typescript --local --schema public > apps/dashboard/types/database.ts",
+    "up": "node scripts/stack.mjs up",
+    "down": "node scripts/stack.mjs down",
+    "reset-db": "node scripts/stack.mjs reset-db",
+    "logs": "node scripts/stack.mjs logs"
   },
   "devDependencies": {
     "supabase": "^2.122.0"

@@ -1,11 +1,21 @@
-# Local stack. Phase 6 adds simulator, worker and dashboard services.
+# Local stack: broker, simulator, worker and dashboard.
+# Supabase runs separately (`supabase start`) and is reached through the host.
+#
+# Start everything with `pnpm run up` (scripts/stack.mjs): it starts Supabase, reads
+# its local keys and passes them here, so no manual .env editing is needed.
 name: smartgrid-pulse
+
+x-host-gateway: &host-gateway
+  # Docker Desktop (Windows/macOS) resolves host.docker.internal already; Linux needs this.
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
 
 services:
   mosquitto:
     image: eclipse-mosquitto:2.0.22
     ports:
-      - "1883:1883"
+      - "1883:1883" # MQTT
+      - "9001:9001" # MQTT over WebSockets
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto-data:/mosquitto/data
@@ -14,6 +24,62 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    restart: unless-stopped
+
+  simulator:
+    build: ../services/simulator
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_TLS: "false"
+      MQTT_CLIENT_ID: smartgrid-simulator
+      DEVICE_COUNT: ${DEVICE_COUNT:-12}
+      PUBLISH_HZ: ${PUBLISH_HZ:-1}
+      HEALTH_PORT: "8080"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: ../services/worker
+    <<: *host-gateway
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_TLS: "false"
+      MQTT_CLIENT_ID: smartgrid-worker
+      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:${SUPABASE_DB_PORT:-54422}/postgres
+      SUPABASE_URL: http://host.docker.internal:${SUPABASE_API_PORT:-54421}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?start the stack with `pnpm run up`}
+      HEALTH_PORT: "8080"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: apps/dashboard/Dockerfile
+      args:
+        # Browser-facing values, inlined at build time.
+        NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:${SUPABASE_API_PORT:-54421}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?start the stack with `pnpm run up`}
+    <<: *host-gateway
+    environment:
+      # Server-side calls from inside the container go through the host.
+      SUPABASE_INTERNAL_URL: http://host.docker.internal:${SUPABASE_API_PORT:-54421}
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_TLS: "false"
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    depends_on:
+      worker:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

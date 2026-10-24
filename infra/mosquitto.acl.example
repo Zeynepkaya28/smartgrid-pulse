@@ -1,0 +1,15 @@
+# Production broker ACL (Mosquitto syntax; the same split applies to any managed broker).
+# Enable with: allow_anonymous false, password_file, acl_file in mosquitto.conf.
+
+# Simulator: publishes telemetry and its retained fault map, receives commands.
+user device
+topic write smartgrid/+/+/telemetry
+topic write smartgrid/sim/faults
+topic read smartgrid/cmd/#
+
+# Worker and the dashboard's /api/sim route.
+user backend
+topic read smartgrid/+/+/telemetry
+topic read smartgrid/sim/faults
+topic write smartgrid/cmd/#
+topic write smartgrid/alerts

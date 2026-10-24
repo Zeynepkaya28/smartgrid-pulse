@@ -7,13 +7,23 @@ import { cookies } from "next/headers";
 import { publicEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
 
+import { AUTH_COOKIE_NAME } from "./config";
+
+/**
+ * URL the Next.js server uses to reach Supabase. In Docker this differs from the
+ * browser-facing URL (host.docker.internal vs 127.0.0.1); elsewhere they are equal.
+ */
+export const SUPABASE_SERVER_URL =
+  process.env.SUPABASE_INTERNAL_URL || publicEnv.NEXT_PUBLIC_SUPABASE_URL;
+
 /** Per-request server client. Uses the anon key: RLS applies, never the service role. */
 export async function createSupabaseServer(): Promise<SupabaseClient<Database>> {
   const store = await cookies();
   return createServerClient<Database>(
-    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVER_URL,
     publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
+      cookieOptions: { name: AUTH_COOKIE_NAME },
       cookies: {
         getAll: () => store.getAll(),
         setAll: (list) => {

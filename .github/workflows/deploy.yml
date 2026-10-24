@@ -1,0 +1,81 @@
+name: Deploy
+
+# Vercel deploys the dashboard through its own Git integration.
+# This workflow migrates the production database, optionally deploys the Python
+# services to Railway, and smoke-tests production (also once a day).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    name: supabase db push
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      # Supavisor session pooler URL incl. password (repository secret).
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.122.0
+      - name: Push migrations
+        run: supabase db push --db-url "$SUPABASE_DB_URL" --yes
+      - name: Production settings (1-day raw retention)
+        run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/scripts/production_settings.sql
+      - name: Verify extensions, cron jobs, partitions, RLS
+        run: psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/scripts/verify_production.sql
+
+  backend:
+    name: railway up (${{ matrix.service }})
+    # Off until a Railway project exists: set repository variable RAILWAY_ENABLED=true
+    # and secret RAILWAY_TOKEN (see README "Üretim").
+    if: github.event_name != 'schedule' && vars.RAILWAY_ENABLED == 'true'
+    needs: database
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [simulator, worker]
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: npm install -g @railway/cli
+      - run: railway up services/${{ matrix.service }} --path-as-root --service ${{ matrix.service }} --ci
+
+  smoke:
+    name: smoke test
+    needs: [database, backend]
+    if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    runs-on: ubuntu-latest
+    env:
+      SMOKE_BASE_URL: ${{ vars.SMOKE_BASE_URL }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+      # "1" while no simulator/worker runs in production.
+      SMOKE_SKIP_REALTIME: ${{ vars.SMOKE_SKIP_REALTIME }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Smoke test (retries while Vercel finishes deploying)
+        run: |
+          for attempt in 1 2 3; do
+            node scripts/smoke.mjs && exit 0
+            echo "attempt $attempt failed, retrying in 60 s"
+            sleep 60
+          done
+          exit 1

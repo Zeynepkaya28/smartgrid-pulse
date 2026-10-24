@@ -10,6 +10,7 @@
  * 4. Presses "Normale Döndür" and watches the health score recover.
  *
  * The worker needs ~10 minutes of warm-up after start for ETA forecasts.
+ * QUICK=1 stops after one inject/clear round trip (smoke test).
  */
 import { chromium } from "@playwright/test";
 
@@ -75,6 +76,16 @@ await page.getByRole("button", { name: "Motoru Isıt" }).click();
 await page.getByRole("button", { name: "Motoru Isıt", pressed: true }).waitFor({ timeout: 10_000 });
 const injectedAt = Date.now();
 log("overheat injected (pill filled)");
+
+if (process.env.QUICK === "1") {
+  // Smoke mode: proves session + /api/sim + MQTT + fault relay, then cleans up.
+  await page.getByRole("button", { name: "Normale Döndür" }).click();
+  await page.getByRole("button", { name: "Motoru Isıt", pressed: false }).waitFor({ timeout: 10_000 });
+  log("cleared (pill empty) - quick mode done");
+  await browser.close();
+  console.log("console errors:", consoleErrors.length ? consoleErrors : "none");
+  process.exit(consoleErrors.length ? 1 : 0);
+}
 
 const timeline = [];
 let firstWarning = null;

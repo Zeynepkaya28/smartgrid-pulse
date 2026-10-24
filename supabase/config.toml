@@ -161,7 +161,7 @@ site_url = "http://localhost:3100"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3100/**", "http://127.0.0.1:3100/**", "https://smartgrid-pulse.vercel.app/**"]
+additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/**", "http://localhost:3100/**", "http://127.0.0.1:3100/**", "https://smartgrid-pulse.vercel.app/**", "https://*-zeynep-beca.vercel.app/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -414,3 +414,24 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Production project (eu-central-1). Values here override the local settings above
+# only when running `supabase config push` against this project.
+[remotes.production]
+project_id = "tygzleyywkiwjxvrnprp"
+
+[remotes.production.auth]
+site_url = "https://smartgrid-pulse.vercel.app"
+additional_redirect_urls = [
+  "https://smartgrid-pulse.vercel.app/**",
+  "https://*-zeynep-beca.vercel.app/**",
+]
+# Keep production's stricter defaults instead of the local development values.
+[remotes.production.auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[remotes.production.auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

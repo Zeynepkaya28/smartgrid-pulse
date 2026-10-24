@@ -1,0 +1,17 @@
+# Root build context (dashboard image). Python services use their own folders.
+**/node_modules
+**/.next
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.vercel
+supabase/.temp
+apps/dashboard/tests
+apps/dashboard/playwright-report
+apps/dashboard/test-results

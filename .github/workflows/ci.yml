@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: ${{ matrix.service }} (ruff, mypy, pytest)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [simulator, worker]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src tests
+      # The worker suite includes the 12-device, 900 s + 420 s detection scenario.
+      - run: uv run pytest -q
+
+  dashboard:
+    name: dashboard (tsc, eslint, next build)
+    runs-on: ubuntu-latest
+    env:
+      # Placeholders: every route is dynamic, so the build never calls Supabase.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key-not-a-secret
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version from package.json "packageManager"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @smartgrid/dashboard lint
+      - run: pnpm --filter @smartgrid/dashboard build
+
+  images:
+    name: docker images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: simulator
+        run: docker build -t smartgrid-simulator:ci services/simulator
+      - name: worker
+        run: docker build -t smartgrid-worker:ci services/worker
+      - name: dashboard
+        run: >
+          docker build -f apps/dashboard/Dockerfile
+          --build-arg NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co
+          --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=ci-placeholder-anon-key-not-a-secret
+          -t smartgrid-dashboard:ci .
