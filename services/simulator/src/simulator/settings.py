@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,6 +24,7 @@ class Settings(BaseSettings):
     # Railway injects PORT; HEALTH_PORT is the explicit local name.
     health_port: int = Field(default=8080, validation_alias=AliasChoices("PORT", "HEALTH_PORT"))
     log_level: str = "INFO"
+    log_format: Literal["json", "console"] = "json"
     # Fixed seed makes the fleet reproducible; unset means a new random fleet per start.
     sim_seed: int | None = None
 

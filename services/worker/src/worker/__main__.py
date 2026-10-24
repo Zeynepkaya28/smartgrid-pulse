@@ -8,6 +8,7 @@ import logging
 import sys
 
 from worker.health import serve
+from worker.logging_setup import configure_logging
 from worker.service import WorkerService
 from worker.settings import Settings
 
@@ -16,11 +17,7 @@ log = logging.getLogger("worker")
 
 async def main() -> None:
     settings = Settings()  # required fields come from the environment
-    logging.basicConfig(
-        level=settings.log_level.upper(),
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    configure_logging(settings.log_level, settings.log_format, service="worker")
 
     service = WorkerService(settings)
     runner = await serve(service, settings.health_port)
@@ -31,6 +28,7 @@ async def main() -> None:
             tg.create_task(service.run_flush())
             tg.create_task(service.run_tick())
             tg.create_task(service.run_last_seen())
+            tg.create_task(service.run_metrics())
     finally:
         await service.close()
         await runner.cleanup()

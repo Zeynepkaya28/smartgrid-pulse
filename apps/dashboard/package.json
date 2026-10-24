@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start --port 3100",
     "lint": "tsc --noEmit && eslint .",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test --project=ui",
+    "test:e2e": "playwright test --project=e2e"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

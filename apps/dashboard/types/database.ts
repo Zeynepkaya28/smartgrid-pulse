@@ -157,6 +157,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"device_health_p20261028": {
+                  Row: {
+                    "device_id": string,"eta_metric": string | null,"eta_minutes": number | null,"health_score": number,"iforest_score": number | null,"max_abs_z": number | null,"status": string,"time": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "device_id": string,"eta_metric"?: string | null,"eta_minutes"?: number | null,"health_score": number,"iforest_score"?: number | null,"max_abs_z"?: number | null,"status": string,"time": string
+                  }
+                  Update: {
+                    "device_id"?: string,"eta_metric"?: string | null,"eta_minutes"?: number | null,"health_score"?: number,"iforest_score"?: number | null,"max_abs_z"?: number | null,"status"?: string,"time"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"devices": {
                   Row: {
                     "device_id": string,"first_seen": string | null,"last_seen": string | null,"name": string,"site": string,"type": string
@@ -311,6 +325,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"telemetry_p20261028": {
+                  Row: {
+                    "current": number | null,"device_id": string,"pressure": number | null,"temperature": number | null,"time": string,"vibration": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "current"?: number | null,"device_id": string,"pressure"?: number | null,"temperature"?: number | null,"time": string,"vibration"?: number | null
+                  }
+                  Update: {
+                    "current"?: number | null,"device_id"?: string,"pressure"?: number | null,"temperature"?: number | null,"time"?: string,"vibration"?: number | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -339,6 +367,9 @@ isOneToOne: false
 { Args: { "p_device": string,"p_hours"?: number }; Returns: {
               "bucket": string,"health_avg": number,"health_min": number,"worst_status": string
             }[]
+                           },
+"get_system_status":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "refresh_telemetry_1m":
 { Args: { "p_lookback"?: string }; Returns: number

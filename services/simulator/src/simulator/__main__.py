@@ -10,6 +10,7 @@ import sys
 from simulator.devices import build_devices
 from simulator.fleet import Fleet
 from simulator.health import serve
+from simulator.logging_setup import configure_logging
 from simulator.service import SimulatorService
 from simulator.settings import Settings
 
@@ -18,10 +19,7 @@ log = logging.getLogger("simulator")
 
 async def main() -> None:
     settings = Settings()
-    logging.basicConfig(
-        level=settings.log_level.upper(),
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    configure_logging(settings.log_level, settings.log_format, service="simulator")
     devices = build_devices(settings.device_count)
     fleet = Fleet(devices, seed=settings.sim_seed)
     service = SimulatorService(settings, fleet)

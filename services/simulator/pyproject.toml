@@ -8,6 +8,7 @@ dependencies = [
     "aiomqtt>=2.5.1",
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.1",
+    "structlog>=26.1.0",
 ]
 
 [project.scripts]

@@ -10,6 +10,7 @@ import ssl
 import time
 
 import aiomqtt
+import structlog
 from pydantic import ValidationError
 
 from worker.alerts import Alert
@@ -23,6 +24,7 @@ from worker.realtime import RealtimeBroadcaster
 from worker.settings import Settings
 
 log = logging.getLogger(__name__)
+metrics_log = structlog.get_logger("worker.metrics")
 
 TELEMETRY_FILTER = "smartgrid/+/+/telemetry"
 FAULTS_TOPIC = "smartgrid/sim/faults"
@@ -33,6 +35,8 @@ HEALTH_EVERY_TICKS = 5
 LAST_SEEN_INTERVAL_S = 30.0
 BACKOFF_INITIAL_S = 1.0
 BACKOFF_MAX_S = 30.0
+METRICS_INTERVAL_S = 30.0
+METRICS_WINDOW_CAP = 200_000  # samples kept per window
 
 
 class WorkerService:
@@ -48,6 +52,9 @@ class WorkerService:
         self.last_flush_ok_monotonic: float | None = None
         self.rows_written = 0
         self.invalid_messages = 0
+        self.messages_received = 0
+        self._flush_ms: list[float] = []
+        self._latency_ms: list[float] = []
         self._client: aiomqtt.Client | None = None
         self._known_devices: set[str] = set()
         self._last_seen: dict[str, int] = {}
@@ -113,6 +120,7 @@ class WorkerService:
                     exc.errors(include_url=False)[:2],
                 )
             return None
+        self.messages_received += 1
         self.buffer.add(msg)
         self.engine.observe(msg)
         self._last_seen[msg.device_id] = msg.ts
@@ -150,6 +158,7 @@ class WorkerService:
             rows = self.buffer.drain()
             if not rows:
                 continue
+            started = time.perf_counter()
             try:
                 await self.db.copy_telemetry([record for _, record in rows])
             except DB_ERRORS as exc:
@@ -159,6 +168,11 @@ class WorkerService:
                 continue
             self.rows_written += len(rows)
             self.last_flush_ok_monotonic = time.monotonic()
+            # Ingest latency: device timestamp -> row committed in Postgres.
+            committed_ms = time.time() * 1000
+            if len(self._latency_ms) < METRICS_WINDOW_CAP:
+                self._latency_ms.extend(committed_ms - ts for ts, _ in rows)
+            self._flush_ms.append((time.perf_counter() - started) * 1000)
 
     async def _register_new_devices(self) -> None:
         pending, self._registered_pending = self._registered_pending, []
@@ -255,6 +269,44 @@ class WorkerService:
                 log.warning("alert publish failed: %s", exc)
         await self.realtime.send("alert", payload)
 
+    async def run_metrics(self) -> None:
+        """One structured metrics event every 30 s (messages, queue, flush, latency, models)."""
+        last_received = 0
+        last_time = time.monotonic()
+        while True:
+            await asyncio.sleep(METRICS_INTERVAL_S)
+            now = time.monotonic()
+            elapsed = now - last_time
+            received = self.messages_received - last_received
+            last_received, last_time = self.messages_received, now
+            latency, self._latency_ms = sorted(self._latency_ms), []
+            flushes, self._flush_ms = self._flush_ms, []
+            metrics_log.info(
+                "metrics",
+                window_s=round(elapsed, 1),
+                messages_per_s=round(received / elapsed, 1) if elapsed else 0.0,
+                buffered_rows=len(self.buffer),
+                dropped_rows=self.buffer.dropped,
+                rows_written_total=self.rows_written,
+                flushes=len(flushes),
+                flush_ms_avg=round(sum(flushes) / len(flushes), 1) if flushes else None,
+                flush_ms_max=round(max(flushes), 1) if flushes else None,
+                ingest_latency_ms_p50=_percentile(latency, 50),
+                ingest_latency_ms_p95=_percentile(latency, 95),
+                ingest_latency_ms_max=round(latency[-1], 1) if latency else None,
+                devices=len(self.engine.monitors),
+                models_ready=sum(1 for m in self.engine.monitors.values() if m.model is not None),
+                invalid_messages=self.invalid_messages,
+                mqtt_connected=self.mqtt_connected,
+            )
+
     async def close(self) -> None:
         await self.realtime.close()
         await self.db.close()
+
+
+def _percentile(sorted_values: list[float], pct: float) -> float | None:
+    if not sorted_values:
+        return None
+    index = min(len(sorted_values) - 1, round(pct / 100 * (len(sorted_values) - 1)))
+    return round(sorted_values[index], 1)
