@@ -49,6 +49,15 @@ Arıza enjekte etmek için:
 docker exec smartgrid-pulse-mosquitto-1 mosquitto_pub -q 1 -t smartgrid/cmd/mt-01/fault -m '{"action":"inject","type":"overheat","intensity":2}'
 ```
 
+### Dashboard
+
+```bash
+pnpm --filter @smartgrid/dashboard dev        # http://localhost:3100
+pnpm --filter @smartgrid/dashboard test:ui    # Playwright: 390/768/1440 px, açık/koyu tema, axe WCAG AA
+```
+
+Ekran görüntüleri `apps/dashboard/tests/screenshots/` klasörüne yazılır.
+
 ### Worker (ingestion + anomali motoru)
 
 ```bash

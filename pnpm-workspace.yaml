@@ -2,6 +2,11 @@ packages:
   - "apps/*"
   - "services/*"
 
-# Allow the Supabase CLI package to download its binary on install.
-onlyBuiltDependencies:
-  - supabase
+# Packages allowed to run install scripts (pnpm 12):
+#   supabase      downloads the CLI binary
+#   sharp         native image library used by next/image
+#   unrs-resolver native module resolver used by eslint-config-next
+allowBuilds:
+  supabase: true
+  sharp: true
+  unrs-resolver: true
