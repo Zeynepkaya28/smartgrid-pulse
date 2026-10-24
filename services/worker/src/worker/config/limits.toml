@@ -1,0 +1,36 @@
+# Warning / critical limits per device type.
+#
+# temperature, vibration: upper limits (vibration follows ISO 10816; transformers are stricter).
+# pressure: lower limits as a fraction of nominal (warning 78 %, critical 60 %).
+# current:  upper limits as a fraction of nominal (warning 115 %, critical 135 %).
+# Nominal values must match the simulator profiles.
+
+[defaults]
+pressure_warning_ratio = 0.78
+pressure_critical_ratio = 0.60
+current_warning_ratio = 1.15
+current_critical_ratio = 1.35
+
+[motor]
+temperature = { warning = 80, critical = 95 }
+vibration = { warning = 4.5, critical = 7.1 }
+pressure_nominal = 3.2
+current_nominal = 48
+
+[wind_turbine]
+temperature = { warning = 75, critical = 90 }
+vibration = { warning = 4.5, critical = 7.1 }
+pressure_nominal = 2.6
+current_nominal = 310
+
+[pump]
+temperature = { warning = 70, critical = 85 }
+vibration = { warning = 4.5, critical = 7.1 }
+pressure_nominal = 6.4
+current_nominal = 36
+
+[transformer]
+temperature = { warning = 85, critical = 105 }
+vibration = { warning = 2.0, critical = 3.5 }
+pressure_nominal = 0.35
+current_nominal = 520

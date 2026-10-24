@@ -1,0 +1,11 @@
+{
+  "name": "@smartgrid/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run python -m worker",
+    "lint": "uv run ruff check . && uv run ruff format --check . && uv run mypy src tests",
+    "test": "uv run pytest",
+    "scenario": "uv run python tests/scenario.py 2026 7 99"
+  }
+}

@@ -49,6 +49,14 @@ Arıza enjekte etmek için:
 docker exec smartgrid-pulse-mosquitto-1 mosquitto_pub -q 1 -t smartgrid/cmd/mt-01/fault -m '{"action":"inject","type":"overheat","intensity":2}'
 ```
 
+### Worker (ingestion + anomali motoru)
+
+```bash
+cp services/worker/.env.example services/worker/.env   # SUPABASE_SERVICE_ROLE_KEY'i `supabase status`'tan doldurun
+pnpm --filter @smartgrid/worker dev
+pnpm --filter @smartgrid/worker scenario   # 12 cihaz, 900 s normal + 420 s arıza senaryosu
+```
+
 ### Üretim broker'ı
 
 Proje belirli bir MQTT sağlayıcısına bağlı değildir. Üretimde TLS destekleyen herhangi bir
@@ -58,4 +66,3 @@ her servisin `.env` dosyasındaki `MQTT_HOST`, `MQTT_PORT=8883`, `MQTT_TLS=true`
 
 > Not: HiveMQ Cloud'un ücretsiz Serverless planı 30 Eylül 2026 itibarıyla yeni kullanıcılara
 > kapandı, bu yüzden repo hazır bir üretim broker'ı içermez.
-
