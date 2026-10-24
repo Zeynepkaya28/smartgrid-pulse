@@ -31,3 +31,7 @@ npm install -g pnpm@12
 pnpm install
 pnpm supabase start
 ```
+
+Yerel Supabase portları 544xx aralığındadır (API `54421`, DB `54422`, Studio `54423`).
+Varsayılan 543xx portları başka projelerle çakışmasın, 55xxx aralığındaki
+Windows'un ayırdığı portlara da denk gelmesin diye bu aralık seçildi.
