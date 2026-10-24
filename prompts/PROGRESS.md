@@ -4,7 +4,7 @@ Claude Code her fazın sonunda bu dosyayı günceller.
 
 | Faz | Durum | Not |
 |---|---|---|
-| 0 — İskelet | 🟡 Kısmen | İskelet, `supabase init`, GitHub repo, Supabase projesi (eu-central-1, PG17, linked) ve Vercel projesi (root: apps/dashboard) tamam. Vercel ↔ GitHub bağlantısı kullanıcıda bekliyor |
+| 0 — İskelet | ✅ Tamamlandı | Monorepo iskeleti, `supabase init`, GitHub repo (public), Supabase projesi (eu-central-1, PG17, linked), Vercel projesi (root: apps/dashboard, GitHub'a bağlı) |
 | 1 — Supabase şeması | ⬜ Başlamadı | |
 | 2 — MQTT + simülatör | ⬜ Başlamadı | |
 | 3 — Worker + anomali | ⬜ Başlamadı | |
