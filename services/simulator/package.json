@@ -1,0 +1,10 @@
+{
+  "name": "@smartgrid/simulator",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run python -m simulator",
+    "lint": "uv run ruff check . && uv run ruff format --check . && uv run mypy src tests",
+    "test": "uv run pytest"
+  }
+}

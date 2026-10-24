@@ -6,7 +6,7 @@ Claude Code her fazın sonunda bu dosyayı günceller.
 |---|---|---|
 | 0 — İskelet | ✅ Tamamlandı | Monorepo iskeleti, `supabase init`, GitHub repo (public), Supabase projesi (eu-central-1, PG17, linked), Vercel projesi (root: apps/dashboard, GitHub'a bağlı) |
 | 1 — Supabase şeması | ✅ Tamamlandı | 6 migration + seed (12 cihaz). `db reset` hatasız; 15m sorgusu yalnızca bugünün bölümünü tarıyor (Subplans Removed), 24h yalnızca telemetry_1m; 3 cron işi `cron.job`'da; anon INSERT 401/42501. Uzak projeye `db push` + seed yapıldı; cron, RLS ve anon erişimi uzakta da doğrulandı |
-| 2 — MQTT + simülatör | ⬜ Başlamadı | |
+| 2 — MQTT + simülatör | 🟡 Kısmen | Mosquitto + simülatör çalışıyor: 12 mesaj/s, inject/clear/reset, retained arıza haritası, yeniden bağlanma, /healthz, Docker (non-root). 36 test, ruff + mypy strict temiz. HiveMQ Cloud TLS testi kullanıcının cluster bilgilerini bekliyor |
 | 3 — Worker + anomali | ⬜ Başlamadı | |
 | 4 — Tasarım sistemi | ⬜ Başlamadı | |
 | 5 — Canlı veri | ⬜ Başlamadı | |

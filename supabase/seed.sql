@@ -1,16 +1,19 @@
--- 12 virtual devices: 3 of each type across 3 sites.
--- Names are user-facing, so they are in Turkish.
+-- 12 virtual devices: 3 of each type. Must match services/simulator/src/simulator/devices.py.
+-- Names and sites are user-facing, so they are in Turkish.
 insert into public.devices (device_id, name, type, site) values
-  ('mt-01', 'Motor 01',          'motor',        'istanbul'),
-  ('mt-02', 'Motor 02',          'motor',        'izmir'),
-  ('mt-03', 'Motor 03',          'motor',        'ankara'),
-  ('wt-01', 'Rüzgâr Türbini 01', 'wind_turbine', 'istanbul'),
-  ('wt-02', 'Rüzgâr Türbini 02', 'wind_turbine', 'izmir'),
-  ('wt-03', 'Rüzgâr Türbini 03', 'wind_turbine', 'ankara'),
-  ('pm-01', 'Pompa 01',          'pump',         'istanbul'),
-  ('pm-02', 'Pompa 02',          'pump',         'izmir'),
-  ('pm-03', 'Pompa 03',          'pump',         'ankara'),
-  ('tr-01', 'Trafo 01',          'transformer',  'istanbul'),
-  ('tr-02', 'Trafo 02',          'transformer',  'izmir'),
-  ('tr-03', 'Trafo 03',          'transformer',  'ankara')
-on conflict (device_id) do nothing;
+  ('mt-01', 'Motor MT-01',  'motor',        'Bursa Fabrika A'),
+  ('mt-02', 'Motor MT-02',  'motor',        'Bursa Fabrika A'),
+  ('mt-03', 'Motor MT-03',  'motor',        'Bursa Fabrika A'),
+  ('wt-01', 'Türbin WT-01', 'wind_turbine', 'Aliağa Rüzgar Santrali'),
+  ('wt-02', 'Türbin WT-02', 'wind_turbine', 'Aliağa Rüzgar Santrali'),
+  ('wt-03', 'Türbin WT-03', 'wind_turbine', 'Aliağa Rüzgar Santrali'),
+  ('pm-01', 'Pompa PM-01',  'pump',         'Kocaeli Fabrika B'),
+  ('pm-02', 'Pompa PM-02',  'pump',         'Kocaeli Fabrika B'),
+  ('pm-03', 'Pompa PM-03',  'pump',         'Kocaeli Fabrika B'),
+  ('tr-01', 'Trafo TR-01',  'transformer',  'İzmir Şebeke TM-3'),
+  ('tr-02', 'Trafo TR-02',  'transformer',  'İzmir Şebeke TM-3'),
+  ('tr-03', 'Trafo TR-03',  'transformer',  'İzmir Şebeke TM-3')
+on conflict (device_id) do update set
+  name = excluded.name,
+  type = excluded.type,
+  site = excluded.site;

@@ -35,3 +35,17 @@ pnpm supabase start
 Yerel Supabase portları 544xx aralığındadır (API `54421`, DB `54422`, Studio `54423`).
 Varsayılan 543xx portları başka projelerle çakışmasın, 55xxx aralığındaki
 Windows'un ayırdığı portlara da denk gelmesin diye bu aralık seçildi.
+
+### MQTT broker ve simülatör
+
+```bash
+docker compose -f infra/docker-compose.yml up -d mosquitto
+pnpm --filter @smartgrid/simulator dev
+```
+
+Arıza enjekte etmek için:
+
+```bash
+docker exec smartgrid-pulse-mosquitto-1 mosquitto_pub -q 1 -t smartgrid/cmd/mt-01/fault -m '{"action":"inject","type":"overheat","intensity":2}'
+```
+
