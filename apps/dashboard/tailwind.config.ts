@@ -21,6 +21,7 @@ const config: Config = {
         warn: v("status-warn"),
         "warn-strong": v("status-warn-strong"),
         crit: v("status-crit"),
+        "crit-strong": v("status-crit-strong"),
       },
       fontFamily: {
         sans: [

@@ -23,6 +23,7 @@ const SPARK_COLOR = {
 
 export function DeviceCard({ device, sparkline, span = "single" }: DeviceCardProps) {
   const eta = device.eta_minutes;
+  const waiting = device.ts === 0; // registered but no telemetry yet
   return (
     <BentoCard span={span} interactive className="group p-0 sm:p-0">
       <Link
@@ -42,22 +43,26 @@ export function DeviceCard({ device, sparkline, span = "single" }: DeviceCardPro
           <p className="leading-none">
             <span className="block text-[13px] font-medium text-ink-secondary">Sağlık</span>
             <span className="text-[44px] font-semibold tabular-nums tracking-tight">
-              {formatNumber(Math.round(device.health))}
+              {waiting ? "—" : formatNumber(Math.round(device.health))}
             </span>
           </p>
           <p className="text-right text-[14px] leading-tight">
             <span className="block text-ink-secondary">{METRIC_LABEL.temperature}</span>
             <span className="font-semibold tabular-nums">
-              {formatMetric("temperature", device.values.temperature)}
+              {waiting ? "Veri bekleniyor" : formatMetric("temperature", device.values.temperature)}
             </span>
           </p>
         </div>
 
-        <Sparkline
-          values={sparkline}
-          label={`${device.name} son 60 saniye sıcaklık eğilimi`}
-          color={SPARK_COLOR[device.status]}
-        />
+        {sparkline.length > 1 ? (
+          <Sparkline
+            values={sparkline}
+            label={`${device.name} son 60 saniye sıcaklık eğilimi`}
+            color={SPARK_COLOR[device.status]}
+          />
+        ) : (
+          <div className="h-10" aria-hidden="true" />
+        )}
 
         {eta !== null && device.eta_metric ? (
           <p className="-mt-1 text-[14px] font-medium text-ink">

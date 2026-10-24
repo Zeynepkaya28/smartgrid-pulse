@@ -52,11 +52,27 @@ export const DeviceStateSchema = z.object({
 });
 export type DeviceState = z.infer<typeof DeviceStateSchema>;
 
+export const FAULT_TYPES = ["overheat", "vibration", "pressure_leak", "current_surge"] as const;
+export const FaultTypeSchema = z.enum(FAULT_TYPES);
+export type FaultType = z.infer<typeof FaultTypeSchema>;
+
+/** Active simulator faults per device, relayed by the worker from smartgrid/sim/faults. */
+export const FaultMapSchema = z.record(
+  z.string(),
+  z.partialRecord(FaultTypeSchema, z.object({ intensity: z.number(), since: z.number() })),
+);
+export type FaultMap = z.infer<typeof FaultMapSchema>;
+
+/** Realtime "state" event on the fleet channel (1 Hz). */
 export const FleetStateSchema = z.object({
   ts: z.number().int(),
   devices: z.array(DeviceStateSchema),
+  faults: FaultMapSchema.default({}),
 });
 export type FleetState = z.infer<typeof FleetStateSchema>;
+
+/** Realtime "faults" event, sent when the fault map changes. */
+export const FaultsEventSchema = z.object({ faults: FaultMapSchema });
 
 export const AlertSchema = z.object({
   id: z.number().int(),
@@ -71,6 +87,11 @@ export const AlertSchema = z.object({
   acknowledged: z.boolean(),
 });
 export type Alert = z.infer<typeof AlertSchema>;
+
+/** Realtime "alert" event from the worker (not acknowledged yet; id set once stored). */
+export const AlertEventSchema = AlertSchema.omit({ id: true, acknowledged: true }).extend({
+  id: z.number().int().optional(),
+});
 
 export const RANGES = ["15m", "1h", "6h", "24h", "7d"] as const;
 export const RangeSchema = z.enum(RANGES);
@@ -104,6 +125,11 @@ export const FleetStatsSchema = z.object({
 });
 export type FleetStats = z.infer<typeof FleetStatsSchema>;
 
-export const FAULT_TYPES = ["overheat", "vibration", "pressure_leak", "current_surge"] as const;
-export const FaultTypeSchema = z.enum(FAULT_TYPES);
-export type FaultType = z.infer<typeof FaultTypeSchema>;
+/** Health score per 5-minute bucket (get_health_history RPC). */
+export const HealthPointSchema = z.object({
+  bucket: z.number().int(),
+  health_avg: z.number().nullable(),
+  health_min: z.number().nullable(),
+  worst_status: StatusSchema,
+});
+export type HealthPoint = z.infer<typeof HealthPointSchema>;

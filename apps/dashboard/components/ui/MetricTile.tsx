@@ -7,7 +7,8 @@ import { StatusDot } from "./StatusBadge";
 
 interface MetricTileProps {
   metric: Metric;
-  value: number;
+  /** null while no telemetry has arrived yet. */
+  value: number | null;
   z: number;
   zone: Status;
   className?: string;
@@ -21,11 +22,16 @@ export function MetricTile({ metric, value, z, zone, className }: MetricTileProp
       <p className="text-[14px] font-medium text-ink-secondary">{METRIC_LABEL[metric]}</p>
       <p className="mt-1 flex items-baseline gap-1">
         <span className="text-[32px] font-semibold tabular-nums tracking-tight">
-          {formatNumber(value, METRIC_DECIMALS[metric])}
+          {value === null ? "—" : formatNumber(value, METRIC_DECIMALS[metric])}
         </span>
         <span className="text-[15px] text-ink-secondary">{METRIC_UNIT[metric]}</span>
       </p>
-      <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+      <p
+        className={cn(
+          "mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]",
+          value === null && "invisible",
+        )}
+      >
         <span className="inline-flex items-center gap-1.5">
           <StatusDot status={zone} />
           {zoneText}

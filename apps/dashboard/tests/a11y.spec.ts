@@ -6,7 +6,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const PAGES = ["/", "/devices", "/devices/mt-01", "/alerts", "/simulator"] as const;
+const PAGES = ["/", "/devices", "/devices/mt-01", "/alerts", "/simulator", "/login"] as const;
 const SCHEMES = ["light", "dark"] as const;
 
 for (const path of PAGES) {

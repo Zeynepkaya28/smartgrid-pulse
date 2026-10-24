@@ -10,11 +10,17 @@
     "test:ui": "playwright test"
   },
   "dependencies": {
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.118.0",
+    "@tanstack/react-query": "5.104.5",
+    "mqtt": "5.16.1",
     "next": "15.5.28",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "recharts": "3.10.1",
-    "zod": "4.6.7"
+    "server-only": "0.0.1",
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",

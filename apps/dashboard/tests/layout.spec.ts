@@ -1,4 +1,7 @@
 /**
+ * Runs against the local stack (supabase start + seeded devices); the worker and
+ * simulator are optional — pages must also render cleanly before any telemetry arrives.
+ *
  * Responsive layout check: every page at 390 / 768 / 1440 px in light and dark mode.
  * Asserts no horizontal overflow and no console errors (incl. hydration mismatches),
  * and saves a full-page screenshot to tests/screenshots/.
@@ -11,6 +14,7 @@ const PAGES = [
   { name: "device-mt-01", path: "/devices/mt-01" },
   { name: "alerts", path: "/alerts" },
   { name: "simulator", path: "/simulator" },
+  { name: "login", path: "/login" },
 ] as const;
 
 const WIDTHS = [390, 768, 1440] as const;
@@ -74,17 +78,30 @@ test("mobile menu opens and closes", async ({ browser }) => {
 test("segmented control switches range with arrow keys", async ({ page }) => {
   await page.goto("/devices/mt-01");
   const group = page.getByRole("radiogroup", { name: "Zaman aralığı" });
-  await group.getByRole("radio", { name: "Son 1 saat" }).focus();
+  await group.getByRole("radio", { name: "Son 15 dakika" }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(group.getByRole("radio", { name: "Son 6 saat" })).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByRole("heading", { name: "Son 6 saat." })).toBeVisible();
+  await expect(group.getByRole("radio", { name: "Son 1 saat" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("heading", { name: "Son 1 saat." })).toBeVisible();
 });
 
-test("alerts can be filtered and acknowledged", async ({ page }) => {
+test("alerts filter and visitor read-only mode", async ({ page }) => {
   await page.goto("/alerts");
-  await expect(page.getByText("4 alarm onay bekliyor.")).toBeVisible();
   await page.getByRole("radio", { name: "Kritik" }).click();
-  await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(2);
-  await page.getByRole("button", { name: /^Onayla/ }).first().click();
-  await expect(page.getByText("3 alarm onay bekliyor.")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Kritik" })).toHaveAttribute("aria-checked", "true");
+  // Visitors see the list but cannot acknowledge.
+  await expect(page.getByRole("link", { name: "giriş yap" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Onayla/ })).toHaveCount(0);
+});
+
+test("simulation is read-only for visitors", async ({ page }) => {
+  await page.goto("/devices/mt-01");
+  await expect(page.getByRole("button", { name: "Motoru Isıt" })).toBeDisabled();
+  await expect(page.getByRole("slider")).toBeDisabled();
+});
+
+test("api/sim rejects visitors with 401", async ({ request }) => {
+  const response = await request.post("/api/sim", {
+    data: { device_id: "mt-01", action: "inject", type: "overheat", intensity: 1 },
+  });
+  expect(response.status()).toBe(401);
 });

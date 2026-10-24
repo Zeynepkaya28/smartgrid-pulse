@@ -1,17 +1,14 @@
+"use client";
+
 import Link from "next/link";
 
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatAgo } from "@/lib/format";
-import type { Alert } from "@/lib/types";
+import { useFleetStore } from "@/lib/store/fleet";
 
-interface RecentAlertsProps {
-  alerts: Alert[];
-  now: number;
-  limit?: number;
-}
-
-/** Latest open alerts, compact. */
-export function RecentAlerts({ alerts, now, limit = 3 }: RecentAlertsProps) {
+/** Latest open alerts, compact, live. */
+export function RecentAlerts({ limit = 3 }: { limit?: number }) {
+  const alerts = useFleetStore((s) => s.alerts);
   const items = alerts.filter((a) => !a.acknowledged).slice(0, limit);
   if (items.length === 0) {
     return <p className="text-lead text-ink-secondary">Açık alarm yok. Her şey yolunda.</p>;
@@ -26,7 +23,10 @@ export function RecentAlerts({ alerts, now, limit = 3 }: RecentAlertsProps) {
               <Link href={`/devices/${alert.device_id}`} className="hover:underline">
                 {alert.device_name}
               </Link>
-              <span className="font-normal text-ink-secondary"> · {formatAgo(alert.ts, now)}</span>
+              <span className="font-normal text-ink-secondary">
+                {" · "}
+                <RelativeTime ts={alert.ts} />
+              </span>
             </p>
             <p className="mt-1 break-words text-[15px] leading-snug text-ink">{alert.message}</p>
           </div>

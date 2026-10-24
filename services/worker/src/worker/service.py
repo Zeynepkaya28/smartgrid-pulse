@@ -17,7 +17,7 @@ from worker.buffer import TelemetryBuffer
 from worker.db import DB_ERRORS, Database
 from worker.detection.iforest import ModelBundle, train
 from worker.engine import Engine
-from worker.models import TelemetryIn
+from worker.models import FaultsSnapshotIn, TelemetryIn
 from worker.monitor import DeviceMonitor
 from worker.realtime import RealtimeBroadcaster
 from worker.settings import Settings
@@ -25,6 +25,7 @@ from worker.settings import Settings
 log = logging.getLogger(__name__)
 
 TELEMETRY_FILTER = "smartgrid/+/+/telemetry"
+FAULTS_TOPIC = "smartgrid/sim/faults"
 ALERTS_TOPIC = "smartgrid/alerts"
 FLUSH_INTERVAL_S = 1.0
 TICK_INTERVAL_S = 1.0
@@ -51,6 +52,9 @@ class WorkerService:
         self._known_devices: set[str] = set()
         self._last_seen: dict[str, int] = {}
         self._registered_pending: list[TelemetryIn] = []
+        # Active simulator faults (relayed to the dashboard, which never talks to MQTT).
+        self.faults: dict[str, dict[str, dict[str, float | int]]] = {}
+        self._faults_changed = False
 
     # -- MQTT -----------------------------------------------------------------------
 
@@ -80,8 +84,12 @@ class WorkerService:
                         self.settings.mqtt_port,
                     )
                     await client.subscribe(TELEMETRY_FILTER, qos=0)
+                    await client.subscribe(FAULTS_TOPIC, qos=1)
                     async for message in client.messages:
-                        self.handle_telemetry(message.payload)
+                        if message.topic.value == FAULTS_TOPIC:
+                            self.handle_faults(message.payload)
+                        else:
+                            self.handle_telemetry(message.payload)
             except aiomqtt.MqttError as exc:
                 log.warning("mqtt connection lost: %s", exc)
             finally:
@@ -112,6 +120,25 @@ class WorkerService:
             self._known_devices.add(msg.device_id)
             self._registered_pending.append(msg)
         return msg
+
+    def handle_faults(self, payload: object) -> None:
+        """Keep the latest retained fault map; an empty payload means no faults."""
+        if payload in (None, b"", ""):
+            faults: dict[str, dict[str, dict[str, float | int]]] = {}
+        else:
+            try:
+                raw = payload if isinstance(payload, bytes | bytearray | str) else b""
+                snapshot = FaultsSnapshotIn.model_validate_json(raw)
+            except ValidationError as exc:
+                log.warning("invalid fault map dropped: %s", exc.errors(include_url=False)[:2])
+                return
+            faults = {
+                device: {kind: f.model_dump() for kind, f in kinds.items()}
+                for device, kinds in snapshot.faults.items()
+            }
+        if faults != self.faults:
+            self.faults = faults
+            self._faults_changed = True
 
     # -- database writers -------------------------------------------------------------
 
@@ -172,11 +199,18 @@ class WorkerService:
             tick += 1
             self._schedule_training()
             states, alerts = self.engine.evaluate()
+            if self._faults_changed:
+                self._faults_changed = False
+                await self.realtime.send("faults", {"faults": self.faults})
             if not states:
                 continue
             await self.realtime.send(
                 "state",
-                {"ts": int(time.time() * 1000), "devices": [s.to_payload() for s in states]},
+                {
+                    "ts": int(time.time() * 1000),
+                    "devices": [s.to_payload() for s in states],
+                    "faults": self.faults,
+                },
             )
             for alert in alerts:
                 await self._publish_alert(alert)

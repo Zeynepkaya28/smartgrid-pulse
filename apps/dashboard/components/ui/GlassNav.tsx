@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
+import { useSession } from "@/components/providers/SessionProvider";
+import { useConnectionStatus } from "@/hooks/useFleet";
 import { cn } from "@/lib/cn";
+import type { ConnectionStatus } from "@/lib/store/fleet";
 
 const LINKS = [
   { href: "/", label: "Genel Bakış" },
@@ -12,6 +15,45 @@ const LINKS = [
   { href: "/alerts", label: "Alarmlar" },
   { href: "/simulator", label: "Simülasyon" },
 ] as const;
+
+const CONNECTION: Record<ConnectionStatus, { label: string; dot: string }> = {
+  live: { label: "Canlı", dot: "bg-ok" },
+  connecting: { label: "Bağlanıyor", dot: "bg-hairline/30" },
+  reconnecting: { label: "Yeniden bağlanıyor", dot: "bg-warn-strong" },
+};
+
+/** Green dot while Realtime state is flowing; amber while reconnecting. */
+function ConnectionIndicator() {
+  const status = useConnectionStatus();
+  const { label, dot } = CONNECTION[status];
+  return (
+    <p className="flex items-center gap-1.5 text-[12px] font-medium text-ink/80" role="status">
+      <span
+        aria-hidden="true"
+        className={cn("size-2 rounded-full", dot, status === "live" && "motion-safe:animate-pulse")}
+      />
+      {label}
+    </p>
+  );
+}
+
+function AuthLink({ className }: { className?: string }) {
+  const user = useSession();
+  if (!user) {
+    return (
+      <Link href="/login" className={cn("text-accent hover:underline", className)}>
+        Giriş
+      </Link>
+    );
+  }
+  return (
+    <form action="/auth/signout" method="post" className="inline">
+      <button type="submit" className={cn("text-accent hover:underline", className)} title={user.email ?? undefined}>
+        Çıkış
+      </button>
+    </form>
+  );
+}
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -53,6 +95,10 @@ export function GlassNav() {
           SmartGrid Pulse
         </Link>
 
+        <div className="ml-auto mr-4 md:ml-6 md:mr-auto">
+          <ConnectionIndicator />
+        </div>
+
         <ul className="hidden items-center gap-7 md:flex">
           {LINKS.map((link) => {
             const active = isActive(pathname, link.href);
@@ -71,6 +117,9 @@ export function GlassNav() {
               </li>
             );
           })}
+          <li>
+            <AuthLink className="text-[13px]" />
+          </li>
         </ul>
 
         <button
@@ -115,6 +164,9 @@ export function GlassNav() {
               </li>
             );
           })}
+          <li className="pt-4">
+            <AuthLink className="text-[17px] font-medium" />
+          </li>
         </ul>
       </div>
     </header>

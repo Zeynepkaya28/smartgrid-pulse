@@ -22,6 +22,8 @@ interface MetricChartProps {
   data: HistoryPoint[];
   limit: Limit;
   range: Range;
+  /** Live streaming mode: no Recharts animation so new points slide in smoothly. */
+  live?: boolean;
 }
 
 interface Row {
@@ -39,6 +41,7 @@ const EXTREME_KEY: Record<Metric, keyof HistoryPoint> = {
 
 function domain(rows: Row[], limit: Limit): [number, number] {
   const values = rows.flatMap((r) => [r.avg, r.extreme]).filter((v): v is number => v !== null);
+  if (values.length === 0) return [Math.min(limit.warning, limit.critical) * 0.5, Math.max(limit.warning, limit.critical) * 1.1];
   const lo = Math.min(...values, limit.warning, limit.critical);
   const hi = Math.max(...values, limit.warning, limit.critical);
   const pad = (hi - lo) * 0.08 || 1;
@@ -46,7 +49,7 @@ function domain(rows: Row[], limit: Limit): [number, number] {
 }
 
 /** Area chart for one metric with dashed warning/critical limit lines. */
-export function MetricChart({ metric, data, limit, range }: MetricChartProps) {
+export function MetricChart({ metric, data, limit, range, live = false }: MetricChartProps) {
   const gradientId = useId().replace(/:/g, "");
   const decimals = METRIC_DECIMALS[metric];
   const unit = METRIC_UNIT[metric];
@@ -140,6 +143,7 @@ export function MetricChart({ metric, data, limit, range }: MetricChartProps) {
               strokeWidth={2}
               fill={`url(#${gradientId})`}
               dot={false}
+              isAnimationActive={!live}
               animationDuration={400}
             />
           </AreaChart>

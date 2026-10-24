@@ -30,3 +30,19 @@ class TelemetryIn(BaseModel):
         if not math.isfinite(v):
             raise ValueError("must be finite")
         return v
+
+
+class ActiveFaultIn(BaseModel):
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    intensity: float = Field(ge=0, le=10)
+    since: int
+
+
+class FaultsSnapshotIn(BaseModel):
+    """Retained smartgrid/sim/faults payload published by the simulator."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    updated_at: int
+    faults: dict[str, dict[str, ActiveFaultIn]]

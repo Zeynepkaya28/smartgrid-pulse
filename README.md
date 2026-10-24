@@ -54,7 +54,12 @@ docker exec smartgrid-pulse-mosquitto-1 mosquitto_pub -q 1 -t smartgrid/cmd/mt-0
 ```bash
 pnpm --filter @smartgrid/dashboard dev        # http://localhost:3100
 pnpm --filter @smartgrid/dashboard test:ui    # Playwright: 390/768/1440 px, açık/koyu tema, axe WCAG AA
+node apps/dashboard/scripts/e2e-fault.mjs mt-01  # uçtan uca arıza senaryosu (yerel yığın çalışırken)
 ```
+
+`apps/dashboard/.env.local` için `apps/dashboard/.env.example` dosyasına bakın. Giriş, Supabase
+Auth magic link ile yapılır; yerelde e-postalar http://127.0.0.1:54424 adresindeki Mailpit'e düşer.
+Şema değişince tipleri yenileyin: `SUPABASE_DB_PASSWORD=postgres pnpm db:types`.
 
 Ekran görüntüleri `apps/dashboard/tests/screenshots/` klasörüne yazılır.
 

@@ -245,3 +245,30 @@ def test_alert_only_on_escalation_with_cooldown() -> None:
     policy.check(state)
     state.status, state.ts = "warning", TS0 + 61_000
     assert policy.check(state) is not None
+
+
+# -- fault relay ------------------------------------------------------------------------
+
+
+def test_fault_map_relay(monkeypatch: pytest.MonkeyPatch) -> None:
+    from worker.service import WorkerService
+    from worker.settings import Settings
+
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x@localhost/x")
+    monkeypatch.setenv("SUPABASE_URL", "http://localhost")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test")
+    service = WorkerService(Settings(_env_file=None))
+    payload = {
+        "updated_at": TS0,
+        "faults": {"mt-01": {"overheat": {"intensity": 2.0, "since": TS0}}},
+    }
+    service.handle_faults(json.dumps(payload).encode())
+    assert service.faults == {"mt-01": {"overheat": {"intensity": 2.0, "since": TS0}}}
+    assert service._faults_changed
+    service._faults_changed = False
+    service.handle_faults(json.dumps(payload).encode())
+    assert not service._faults_changed  # unchanged map is not re-broadcast
+    service.handle_faults(b"not json")
+    assert service.faults["mt-01"]["overheat"]["intensity"] == 2.0
+    service.handle_faults(b"")
+    assert service.faults == {}

@@ -12,7 +12,8 @@
     "lint": "pnpm -r --if-present run lint",
     "build": "pnpm -r --if-present run build",
     "test": "pnpm -r --if-present run test",
-    "supabase": "supabase"
+    "supabase": "supabase",
+    "db:types": "supabase gen types typescript --local --schema public > apps/dashboard/types/database.ts"
   },
   "devDependencies": {
     "supabase": "^2.122.0"
