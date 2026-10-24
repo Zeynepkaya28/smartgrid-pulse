@@ -49,3 +49,13 @@ Arıza enjekte etmek için:
 docker exec smartgrid-pulse-mosquitto-1 mosquitto_pub -q 1 -t smartgrid/cmd/mt-01/fault -m '{"action":"inject","type":"overheat","intensity":2}'
 ```
 
+### Üretim broker'ı
+
+Proje belirli bir MQTT sağlayıcısına bağlı değildir. Üretimde TLS destekleyen herhangi bir
+broker kullanılabilir (ör. EMQX Cloud, HiveMQ veya kendi Mosquitto'nuz). Bağlantı bilgileri
+her servisin `.env` dosyasındaki `MQTT_HOST`, `MQTT_PORT=8883`, `MQTT_TLS=true`,
+`MQTT_USERNAME` ve `MQTT_PASSWORD` değişkenleriyle verilir.
+
+> Not: HiveMQ Cloud'un ücretsiz Serverless planı 30 Eylül 2026 itibarıyla yeni kullanıcılara
+> kapandı, bu yüzden repo hazır bir üretim broker'ı içermez.
+
