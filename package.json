@@ -1,0 +1,20 @@
+{
+  "name": "smartgrid-pulse",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Industrial IoT platform: MQTT telemetry, real-time anomaly detection, predictive maintenance dashboard.",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --if-present run dev",
+    "lint": "pnpm -r --if-present run lint",
+    "build": "pnpm -r --if-present run build",
+    "test": "pnpm -r --if-present run test",
+    "supabase": "supabase"
+  },
+  "devDependencies": {
+    "supabase": "^2.122.0"
+  }
+}

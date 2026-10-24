@@ -1,0 +1,7 @@
+packages:
+  - "apps/*"
+  - "services/*"
+
+# Allow the Supabase CLI package to download its binary on install.
+onlyBuiltDependencies:
+  - supabase
