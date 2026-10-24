@@ -105,7 +105,21 @@ ile yumuşatılır (alarm hızlı gelir, yavaş söner). Herhangi bir metrik kri
 
 ## Ölçümler
 
-> Yük testi (200 cihaz × 2 Hz, 10 dk) ve sorgu ölçümleri sürüyor; tablo gerçek sayılarla eklenecek.
+Yerel Docker yığını, i7-13620H / 32 GB. Ayrıntılar, yöntem ve ham sayılar: [docs/benchmarks.md](docs/benchmarks.md).
+
+| Ölçüm | Sonuç |
+|---|---|
+| Yük: 200 cihaz × 2 Hz, ~10 dk | 400 msg/s sürekli, **0 kayıp** satır |
+| Ingest gecikmesi (cihaz `ts` → Postgres commit) | p50 **566 ms** · p95 **1,3 s** (1 sn'lik COPY partileri) |
+| Worker kaynak kullanımı (400 msg/s) | CPU ort. %20 · p95 %34 (1 çekirdek = %100) · bellek ≤ 522 MiB |
+| `get_device_history` p95 (3,56 M ham satır, 451 MB) | 15d 1,6 ms · 1s 2,4 ms · 6s 0,1 ms · 24s 0,9 ms · 7g 5,1 ms |
+| Tespit (senaryo, 3 tohum) | normalde **0** yanlış alarm, **0** sahte ETA · motor overheat: uyarı 64–75 s, kritik 130–171 s, ETA önce |
+| Canlı uçtan uca (tarayıcı, 1×) | uyarı 65 s · kritik 170 s · ETA 4 → 1 dk · alarm toast + `/alerts` |
+| Isolation Forest tek örnek puanlama | 3,9 ms → **0,035 ms** (~100×) |
+| Erişilebilirlik | Lighthouse **100**, axe WCAG 2.1 AA **0** ihlal |
+
+Yük testinde bulunan sorun: 200 cihaz eğitim eşiğine aynı anda ulaşınca 188 model birden eğitildi
+ve p95 gecikme 19 sn'ye çıktı. Eğitimler saniyede 2 ile sınırlandırıldı → p95 1,3 sn.
 
 
 ## Hızlı başlangıç (Docker)

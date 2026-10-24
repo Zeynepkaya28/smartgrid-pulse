@@ -272,3 +272,20 @@ def test_fault_map_relay(monkeypatch: pytest.MonkeyPatch) -> None:
     assert service.faults["mt-01"]["overheat"]["intensity"] == 2.0
     service.handle_faults(b"")
     assert service.faults == {}
+
+
+def test_training_is_rate_limited_per_call() -> None:
+    from worker.engine import Engine
+
+    engine = Engine()
+    for i in range(10):
+        for s in range(200):
+            engine.observe(telemetry(device_id=f"mt-{i:02d}", ts=TS0 + s * 1000, seq=s))
+    first = engine.due_training(limit=2)
+    assert len(first) == 2
+    for monitor, _ in first:
+        monitor.install_model(None)
+    # Nothing is lost: the eight skipped devices, plus the two whose job produced no model,
+    # are all due on the next call.
+    remaining = [m.device_id for m, _ in engine.due_training()]
+    assert len(remaining) == 10

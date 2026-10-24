@@ -8,6 +8,7 @@ import json
 import logging
 import ssl
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import aiomqtt
 import structlog
@@ -36,6 +37,8 @@ LAST_SEEN_INTERVAL_S = 30.0
 BACKOFF_INITIAL_S = 1.0
 BACKOFF_MAX_S = 30.0
 METRICS_INTERVAL_S = 30.0
+# Isolation Forest training: one background thread, at most this many new jobs per tick.
+TRAININGS_PER_TICK = 2
 METRICS_WINDOW_CAP = 200_000  # samples kept per window
 
 
@@ -55,6 +58,8 @@ class WorkerService:
         self.messages_received = 0
         self._flush_ms: list[float] = []
         self._latency_ms: list[float] = []
+        self._trainer = ThreadPoolExecutor(max_workers=1, thread_name_prefix="iforest")
+        self._trainings_in_flight = 0
         self._client: aiomqtt.Client | None = None
         self._known_devices: set[str] = set()
         self._last_seen: dict[str, int] = {}
@@ -235,13 +240,18 @@ class WorkerService:
                     log.warning("device_health insert failed: %s", exc)
 
     def _schedule_training(self) -> None:
+        """Queue at most TRAININGS_PER_TICK new trainings, never more than that in flight."""
+        free = TRAININGS_PER_TICK - self._trainings_in_flight
+        if free <= 0:
+            return
         loop = asyncio.get_running_loop()
-        for monitor, data in self.engine.due_training():
-            future = loop.run_in_executor(None, train, data)
+        for monitor, data in self.engine.due_training(limit=free):
+            self._trainings_in_flight += 1
+            future = loop.run_in_executor(self._trainer, train, data)
             future.add_done_callback(functools.partial(self._install, monitor))
 
-    @staticmethod
-    def _install(monitor: DeviceMonitor, future: asyncio.Future[ModelBundle]) -> None:
+    def _install(self, monitor: DeviceMonitor, future: asyncio.Future[ModelBundle]) -> None:
+        self._trainings_in_flight -= 1
         if future.cancelled() or future.exception() is not None:
             log.warning(
                 "model training failed for %s: %s",
@@ -301,6 +311,7 @@ class WorkerService:
             )
 
     async def close(self) -> None:
+        self._trainer.shutdown(wait=False, cancel_futures=True)
         await self.realtime.close()
         await self.db.close()
 

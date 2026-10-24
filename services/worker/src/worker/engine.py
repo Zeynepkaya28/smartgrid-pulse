@@ -35,10 +35,19 @@ class Engine:
         monitor.observe(msg.ts, values)
         return monitor
 
-    def due_training(self) -> list[tuple[DeviceMonitor, NDArray[np.float64]]]:
-        """Monitors whose Isolation Forest should be (re)trained, with their data."""
+    def due_training(
+        self, limit: int | None = None
+    ) -> list[tuple[DeviceMonitor, NDArray[np.float64]]]:
+        """Monitors whose Isolation Forest should be (re)trained, with their data.
+
+        `limit` caps how many jobs start now; the rest stay due and are picked up on later
+        calls. A fleet that starts together reaches its training thresholds in the same
+        second, and training all at once starves the event loop (seen in the load test).
+        """
         jobs: list[tuple[DeviceMonitor, NDArray[np.float64]]] = []
         for monitor in self.monitors.values():
+            if limit is not None and len(jobs) >= limit:
+                break
             data = monitor.training_data()
             if data is not None:
                 jobs.append((monitor, data))
